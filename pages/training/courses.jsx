@@ -7,11 +7,9 @@ import {
   Group,
   Input,
   Modal,
-  PasswordInput,
   Space,
   Notification,
   Text,
-  Checkbox,
   Progress,
   Alert,
   Chip,
@@ -26,8 +24,6 @@ import {
   IconCircleCheck,
   IconClock,
   IconDownload,
-  IconMail,
-  IconPassword,
   IconPlayerPlay,
   IconPointer,
   IconSearch,
@@ -88,6 +84,7 @@ export default function Courses() {
               options
             }
             content
+            timeEstimate
           }
             }
             completed
@@ -134,6 +131,7 @@ export default function Courses() {
               options
             }
             content
+            timeEstimate
           }
         }
       }
@@ -266,7 +264,13 @@ export default function Courses() {
   );
 }
 
-const CourseListing = ({ courses, label, refresh, enrolled }) => {
+const CourseListing = ({
+  courses,
+  label,
+  refresh,
+  enrolled,
+  enrolledCourses,
+}) => {
   return (
     <>
       <Divider my="xs" label={label} labelPosition="right" />
@@ -285,13 +289,7 @@ const CourseListing = ({ courses, label, refresh, enrolled }) => {
             <Course
               course={course}
               refresh={refresh}
-              // enrolled2={
-              //   enrolledCourses.filter(
-              //     (_course) => _course?.course?.id == course.id
-              //   ).length > 0
-              //     ? true
-              //     : false
-              // }
+              enrolledCourses={enrolledCourses}
             />
           ))}
         </div>
@@ -300,7 +298,7 @@ const CourseListing = ({ courses, label, refresh, enrolled }) => {
   );
 };
 
-const Course = ({ course, refresh, enrolled }) => {
+const Course = ({ course, refresh, enrolled, enrolledCourses }) => {
   const router = useRouter();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -372,7 +370,8 @@ const Course = ({ course, refresh, enrolled }) => {
               message: "You have successfully enrolled to this course",
               color: "green",
             });
-            router.reload();
+            router.push("/training/courses");
+            handleCloseLectureModal();
             return;
           }
           showNotification({
@@ -444,6 +443,21 @@ const Course = ({ course, refresh, enrolled }) => {
         return;
       }
     });
+  };
+
+  function toHoursAndMinutes(totalMinutes) {
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    return `${hours} hours ${minutes} minutes`;
+  }
+
+  const isCourseEnrolled = () => {
+    return enrolledCourses?.filter(
+      (enrolled) => enrolled?.course?.id == course?.id
+    ).length > 0
+      ? true
+      : false;
   };
 
   return (
@@ -523,7 +537,9 @@ const Course = ({ course, refresh, enrolled }) => {
           <Progress
             style={{ marginTop: 12 }}
             value={(course?.progress / 10) * 100}
-            label={`${(course?.progress / 10) * 100}% complete`}
+            label={`${
+              (parseInt(course?.progress.toFixed()) / 10) * 100
+            }% complete`}
             size="xl"
             radius="xl"
             color="green"
@@ -583,23 +599,7 @@ const Course = ({ course, refresh, enrolled }) => {
                   </div>
                 </div>
                 <div>
-                  {/* {!enrolled2 && (
-                    <Button
-                      size="lg"
-                      color="green"
-                      style={{ marginRight: 48 }}
-                      loading={loading}
-                      onClick={handleEnroll}
-                    >
-                      Enroll today
-                      <IconPointer
-                        size={16}
-                        fill="white"
-                        style={{ marginLeft: 12 }}
-                      />
-                    </Button>
-                  )} */}
-                  {!enrolled && (
+                  {!enrolled && !isCourseEnrolled() && (
                     <Button
                       size="lg"
                       color="green"
@@ -632,7 +632,20 @@ const Course = ({ course, refresh, enrolled }) => {
                 </Notification>
 
                 <Notification title="Hours" disallowClose color="red">
-                  13 hours
+                  {!enrolled
+                    ? toHoursAndMinutes(
+                        course?.lectures?.reduce((accumulator, object) => {
+                          return accumulator + object.timeEstimate;
+                        }, 0)
+                      )
+                    : toHoursAndMinutes(
+                        course?.course?.lectures?.reduce(
+                          (accumulator, object) => {
+                            return accumulator + object.timeEstimate;
+                          },
+                          0
+                        )
+                      )}
                 </Notification>
                 <Notification
                   title="Already enrolled"
@@ -669,6 +682,7 @@ const Course = ({ course, refresh, enrolled }) => {
                   handleNext={(val) => {
                     handleNext(val);
                   }}
+                  enrolled
                 />
               ))}
           </div>
@@ -681,15 +695,13 @@ const Course = ({ course, refresh, enrolled }) => {
 const Lecture = ({
   lecture,
   count,
-  refresh,
-  notEnrolled,
   handleNext,
   progress,
   lecturesCount,
+  enrolled,
 }) => {
   const [openLecture, setOpenLecture] = useState(false);
-  const [confirm, setConfirm] = useState(false);
-  const [confirmText, setConfirmText] = useState("");
+
   const [submitted, setSubmitted] = useState([]);
   const [showAnswer, setShowAnswer] = useState(false);
   const [score, setScore] = useState();
@@ -745,15 +757,24 @@ const Lecture = ({
     setSubmitted(updatedArray);
   };
 
-  console.log(progress, lecturesCount);
-
   return (
     <div className="flex  space-x-8">
-      <div className="bg-red-700 h-[144px] w-[144px] relative">
-        <h1 className="absolute text-white top-[50%] w-full text-center translate-y-[-50%]">
-          {count + 1}
-        </h1>
-      </div>
+      {(count / lecturesCount) * 10 < progress ? (
+        <div className="bg-green-700 h-[144px] w-[144px] relative justify-center align-middle">
+          <IconCheck
+            color="white"
+            size={48}
+            className="absolute top-[50%] left-[50%] translate-y-[-50%] translate-x-[-50%]"
+          />
+        </div>
+      ) : (
+        <div className="bg-red-700 h-[144px] w-[144px] relative">
+          <h1 className="absolute text-white top-[50%] w-full text-center translate-y-[-50%]">
+            {count + 1}
+          </h1>
+        </div>
+      )}
+
       <div className="w-4/5 p-6 space-y-2">
         <Text c="dark" fw="bold">
           {lecture?.title}
@@ -766,13 +787,19 @@ const Lecture = ({
           <Text c="gray">~30 min</Text>
         </span>
       </div>
-      <div className="space-y-2">
-        {(count / lecturesCount) * 10 <= progress && (
-          <Button color="green" fullWidth onClick={() => setOpenLecture(true)}>
-            Open
-          </Button>
-        )}
-      </div>
+      {enrolled && (
+        <div className="space-y-2">
+          {((count / lecturesCount) * 10).toFixed() == progress.toFixed() ? (
+            <Button
+              color="green"
+              fullWidth
+              onClick={() => setOpenLecture(true)}
+            >
+              Open
+            </Button>
+          ) : null}
+        </div>
+      )}
       <Modal
         size="70%"
         opened={openLecture}
