@@ -29,5 +29,5 @@ function MyApp({ Component, pageProps }) {
 }
 
 export default withUrqlClient(() => ({
-  url: "https://serene-backend.vercel.app/graphql",
+  url: "https://serene-backend.vercel.app/",
 }))(MyApp);
