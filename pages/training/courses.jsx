@@ -33,7 +33,9 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "urql";
 import { useRouter } from "next/router";
 import { showNotification } from "@mantine/notifications";
-import JsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import moment from "moment/moment";
 
 const RTE = dynamic(
   () => {
@@ -61,34 +63,35 @@ export default function Courses() {
           password
           registeredCourses{
             course{
-                 id
-          name
-          category
-          description
-          addedBy{
-            firstName
-            email
-          }
-          createdAt
-          image
-          price
-          was
-          onSale
-          lectures{
-            id
-            title
-            description
-            quiz{
-              question
-              answer
-              options
-            }
-            content
-            timeEstimate
-          }
+              id
+              name
+              category
+              description
+              addedBy{
+                firstName
+                email
+              }
+              createdAt
+              image
+              price
+              was
+              onSale
+              lectures{
+                id
+                title
+                description
+                quiz{
+                  question
+                  answer
+                  options
+                }
+                content
+                timeEstimate
+              }
             }
             completed
             progress
+            completionDate
         }
       }
     }      
@@ -150,6 +153,13 @@ export default function Courses() {
 
   if (fetching) return <p>Loading...</p>;
   if (error) return <p>Error ...</p>;
+
+  console.log(
+    tData,
+    typeof window !== "undefined" &&
+      window.localStorage &&
+      localStorage.getItem("s_userId")
+  );
 
   return (
     <div>
@@ -229,6 +239,7 @@ export default function Courses() {
               label={"ENROLLED"}
               refresh={reexecuteQuery}
               enrolled
+              traineeName={tData?.getTrainee?.fullName}
             />
           )}
 
@@ -270,6 +281,7 @@ const CourseListing = ({
   refresh,
   enrolled,
   enrolledCourses,
+  traineeName,
 }) => {
   return (
     <>
@@ -278,7 +290,7 @@ const CourseListing = ({
       {enrolled && (
         <div className="grid grid-cols-5 gap-8">
           {courses.map((course) => (
-            <Course course={course} enrolled />
+            <Course course={course} enrolled traineeName={traineeName} />
           ))}
         </div>
       )}
@@ -298,7 +310,23 @@ const CourseListing = ({
   );
 };
 
-const Course = ({ course, refresh, enrolled, enrolledCourses }) => {
+const Course = ({
+  course,
+  refresh,
+  enrolled,
+  enrolledCourses,
+  traineeName,
+}) => {
+  const [user, setUser] = useState({
+    name: traineeName, // Replace with the user's name
+    dateOfCompletion: moment(
+      new Date(Number(course?.completionDate || 0))
+    ).format("Do-MMM-YYYY"), // Replace with the date of completion
+    courseName:
+      course?.name?.toUpperCase() || course.course?.name?.toUpperCase(), // Replace with the course name
+  });
+  const [certModal, setCertModal] = useState(false);
+
   const router = useRouter();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -334,6 +362,7 @@ const Course = ({ course, refresh, enrolled, enrolledCourses }) => {
         $progress: Float
         $completed: Boolean
         $password: String
+        $completionDate: String
       ){
         updateTrainee(
           id: $id
@@ -341,6 +370,7 @@ const Course = ({ course, refresh, enrolled, enrolledCourses }) => {
           progress: $progress
           completed: $completed
           password: $password
+          completionDate: $completionDate
         ){
           id
           fullName
@@ -393,19 +423,58 @@ const Course = ({ course, refresh, enrolled, enrolledCourses }) => {
     }
   };
 
-  const generateCertificate = () => {
-    const report = new JsPDF("landscape", "mm", "a4");
-    report
-      .html(
-        `
-<div style="text-align:center; width:29.7cm ; height:21cm; border: 10px solid #787878">
-       <br><br>
-       <span style="font-size:0.5rem"><i>This is to certify that</i></span>
-</div>`
-      )
-      .then(() => {
-        report.save("certificate.pdf");
+  const generateCertificate = async () => {
+    //Inittiate STK
+    try {
+      const response = await fetch(`/api/initiateNI`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount: 1,
+        }),
       });
+
+      const data = await response.json();
+
+      if (response.status !== 200) {
+        throw new Error("Error occured , Retry");
+      }
+
+      if (response.status == 200) {
+        showNotification({
+          title: "Awaiting payment confirmation",
+          message: "STK push sent",
+          color: "green",
+        });
+      }
+    } catch (error) {
+      console.log(error);
+      showNotification({
+        title: "An error occurred",
+        color: "red",
+      });
+    }
+
+    // Reference to the certificate container
+    const certificateContainer = document.getElementById(
+      "certificate-container"
+    );
+
+    // Create a canvas from the certificate container
+    html2canvas(certificateContainer).then((canvas) => {
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "landscape", // Landscape A4
+      });
+
+      // Add an image of the certificate to the PDF
+      pdf.addImage(imgData, "PNG", 0, 0, 297, 210); // A4 dimensions
+
+      // Download the PDF with a custom filename
+      pdf.save("certificate.pdf");
+    });
   };
 
   const handleCloseLectureModal = () => {
@@ -436,6 +505,10 @@ const Course = ({ course, refresh, enrolled, enrolledCourses }) => {
       course: course.course?.id,
       progress: (completed / course?.course?.lectures?.length) * 10,
       completed: completed == course?.course?.lectures?.length ? true : false,
+      completionDate:
+        completed == course?.course?.lectures?.length
+          ? String(Date.now())
+          : null,
     }).then(({ data, error }) => {
       console.log(data, error);
       if (data && !error) {
@@ -522,13 +595,59 @@ const Course = ({ course, refresh, enrolled, enrolledCourses }) => {
             color="green"
             size={"xs"}
             mt={8}
-            leftIcon={<IconDownload size={16} />}
             uppercase
             fullWidth
-            onClick={generateCertificate}
+            onClick={() => setCertModal(true)}
           >
-            CERTIFICATE
+            View certificate
           </Button>
+
+          <Modal
+            size="90%"
+            opened={certModal}
+            onClose={() => setCertModal(false)}
+          >
+            <Button
+              color="green"
+              size={"xs"}
+              mt={8}
+              leftIcon={<IconDownload size={16} />}
+              uppercase
+              fullWidth
+              onClick={generateCertificate}
+            >
+              PAY TO DOWNLOAD certificate
+            </Button>
+            <br />
+
+            <div className=" ml-[40px]">
+              <div id="certificate-container" className="certificate">
+                {/* Certificate content */}
+                <img src="/blankcert.png" alt="" className="w-full" />
+                <p className=" absolute top-[56%] text-[3rem] left-[50%] translate-x-[-50%]">
+                  {user.name}
+                </p>
+                <p className="absolute top-[82%] text-[1.5rem] left-[150px]">
+                  {user.dateOfCompletion}
+                </p>
+                <p className=" absolute top-[68%] w-[90%] text-[1.4rem] text-[#263A8F] left-[50%] translate-x-[-50%] text-center">
+                  {" "}
+                  for successfully completing {user.courseName}
+                </p>
+              </div>
+            </div>
+
+            <style jsx>{`
+              /* CSS for the certificate container */
+              .certificate {
+                position: relative;
+                width: 297mm; /* A4 width */
+                height: 210mm; /* A4 height */
+                background-color: #ffffff; /* Certificate background color */
+                /* Add other certificate styling here */
+              }
+            `}</style>
+          </Modal>
         </>
       )}
 
