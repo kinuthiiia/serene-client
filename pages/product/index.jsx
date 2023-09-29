@@ -81,7 +81,7 @@ export default function Products() {
       <div className="w-full flex max-h-[100vh] overflow-y-auto">
         <div className="space-y-2 w-[20%] bg-gray-100 sticky py-10">
           <NavLink
-            label={`ALL PRODUCTS (${data?.getProducts.length})`}
+            label={`All products (${data?.getProducts.length})`}
             onClick={() => {
               setCat("");
               setSubCat("");
@@ -89,10 +89,10 @@ export default function Products() {
           />
           {catsNsubCats?.map((item, i) => (
             <NavLink
-              label={new String(item?.label).toUpperCase()}
+              label={item?.label}
               childrenOffset={28}
               onClick={() => {
-                setCat(new String(item?.label).toUpperCase());
+                setCat(item?.label);
                 setSubCat("");
               }}
               key={i}
@@ -100,17 +100,15 @@ export default function Products() {
               <div className="space-y-2">
                 {item?.subcategories.map((subcategory, i) => (
                   <NavLink
-                    onClick={() =>
-                      setSubCat(new String(subcategory).toUpperCase())
-                    }
-                    label={new String(subcategory).toUpperCase()}
+                    onClick={() => setSubCat(subcategory)}
+                    label={subcategory}
                   />
                 ))}
               </div>
             </NavLink>
           ))}
         </div>
-        <div className="w-[80%]">
+        <div className="w-[80%] overflow-x-auto">
           <p className="w-full  text-center tracking-wide uppercase text-[1.2rem] text-black font-extrabold  ">
             Products
           </p>
@@ -119,10 +117,10 @@ export default function Products() {
           <div className="flex justify-between px-4">
             <Breadcrumbs className="text-red-700">
               {_cat && _subcat
-                ? ["PRODUCTS", _cat, _subcat]
-                : _cat
-                ? ["PRODUCTS", _cat]
-                : ["PRODUCTS"]}
+                ? ["All products", _cat, _subcat]
+                : _cat && !_subcat
+                ? ["All products", _cat]
+                : ["All products"]}
             </Breadcrumbs>
             <Input
               variant="filled"
@@ -133,23 +131,17 @@ export default function Products() {
           </div>
           <Space h={40} />
           <div
-            className="grid grid-cols-4 px-12 gap-12 mb-12"
+            className="grid grid-cols-5 px-12 gap-6 mb-12"
             style={{ zIndex: -99 }}
           >
             {data?.getProducts
               .filter((product) => {
-                if (_cat) {
-                  return product?.category
-                    .toLowerCase()
-                    .includes(_cat.toLowerCase());
+                if (_cat && !_subcat) {
+                  return product?.category.toLowerCase() == _cat.toLowerCase();
                 } else if (_cat && _subcat) {
                   return (
-                    product?.category
-                      .toLowerCase()
-                      .includes(_cat.toLowerCase()) &&
-                    product?.subCategory
-                      .toLowerCase()
-                      .includes(_subcat.toLowerCase())
+                    product?.category.toLowerCase() == _cat.toLowerCase() &&
+                    product?.subCategory.toLowerCase() == _subcat.toLowerCase()
                   );
                 } else {
                   return product;
@@ -184,7 +176,6 @@ export default function Products() {
 
 const Product = ({ data }) => {
   const [modalOpen, setModalOpen] = useState(false);
-  const router = useRouter();
 
   return (
     <>

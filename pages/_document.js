@@ -10,6 +10,7 @@ export default class _Document extends Document {
     return (
       <Html>
         <Head>
+          <link rel="icon" href="/zoomed.jpg" />
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link
             rel="preconnect"

@@ -21,18 +21,34 @@ export default function Home() {
       }
   `;
 
+  const GET_ITERABLES = `
+      query GET_ITERABLES{
+        getIterables{
+          id
+          value
+          identifier
+          extra
+        }
+      }
+  `;
+
   const [{ data, fetching, error }] = useQuery({
     query: GET_SECTIONS,
-    variables: { page: "home" },
   });
 
-  if (fetching) return <p>Loading ....</p>;
-  if (error) return <p>error...</p>;
+  const [{ data: iData, fetching: fetching2, error: error2 }] = useQuery({
+    query: GET_ITERABLES,
+  });
 
-  console.log(data?.getSections);
+  if (fetching || fetching2) return <p>Loading ....</p>;
+  if (error || error2) return <p>error...</p>;
 
   const getIndex = (label) => {
-    return data?.getSections.findIndex((obj) => obj?.identifier == label);
+    return data?.getSections?.findIndex((obj) => obj?.identifier == label);
+  };
+
+  const getIndex2 = (label) => {
+    return iData?.getIterables?.findIndex((obj) => obj?.identifier == label);
   };
 
   return (
@@ -46,18 +62,22 @@ export default function Home() {
       <Header active="home" />
 
       <main>
-        <Slider />
+        <Slider value={iData?.getIterables[getIndex2("slides")]} />
 
-        <WhoWeAre value={data?.getSections[getIndex("s2")]} />
+        <WhoWeAre value={data?.getSections[getIndex("whoWeAre")]} />
         <Principles
-          mission={data?.getSections[getIndex("s4")]}
-          vision={data?.getSections[getIndex("s5")]}
-          core_values={data?.getSections[getIndex("s6")]}
+          mission={data?.getSections[getIndex("mission")]}
+          vision={data?.getSections[getIndex("vision")]}
+          core_values={data?.getSections[getIndex("coreValues")]}
         />
         <MiniProducts />
-        <Clients />
-        <Testimonials />
-        <Partners />
+        <Clients value={iData?.getIterables[getIndex2("clients")]} />
+        <Testimonials
+          value={iData?.getIterables.filter(
+            (iterable) => iterable?.identifier == "testimonials"
+          )}
+        />
+        <Partners value={iData?.getIterables[getIndex2("partners")]} />
       </main>
 
       {/* Footer */}
@@ -77,31 +97,15 @@ export default function Home() {
   );
 }
 
-const Slider = () => {
+const Slider = ({ value }) => {
   return (
     <div>
       <Carousel autoPlay infiniteLoop showThumbs={false}>
-        <div>
-          <img
-            src={`/sliders/1.png`}
-            alt="cover"
-            className="object_cover w-full "
-          />
-        </div>
-        <div>
-          <img
-            src={`/sliders/2.png`}
-            alt="cover"
-            className="object_cover w-full "
-          />
-        </div>
-        <div>
-          <img
-            src={`/sliders/3.png`}
-            alt="cover"
-            className="object_cover w-full "
-          />
-        </div>
+        {value?.value.map((img) => (
+          <div>
+            <img src={img} alt="cover" className="object_cover w-full " />
+          </div>
+        ))}
       </Carousel>
     </div>
   );
@@ -119,55 +123,6 @@ const WhoWeAre = ({ value }) => {
           <p className="text-[0.9rem] text-gray-600 font-[300]">
             {value?.value}
           </p>
-          {/* <p className="text-[0.9rem] text-gray-600 font-[300]">
-            Serene products and servicing deals with sale, servicing and
-            maintenance of fire engineering systems, generators, solar,
-            electrical, safety audits and trainings.
-          </p>
-          <br />
-          <p className="text-[0.9rem] text-gray-600 font-[300]">
-            We offer high quality fire products that are manufactured to
-            international standards such as :
-          </p>
-          <br />
-          <div className="space-y-2">
-            <span className="block text-gray-800 text-[0.9rem]">
-              <IconStar
-                fill="#d32131"
-                stroke={0}
-                size={12}
-                className="inline mr-4"
-              />
-              British Standards (BS)
-            </span>
-            <span className="block text-gray-800 text-[0.9rem]">
-              <IconStar
-                fill="#d32131"
-                stroke={0}
-                size={12}
-                className="inline mr-4"
-              />
-              European Standards (BS)
-            </span>
-            <span className="block text-gray-800 text-[0.9rem]">
-              <IconStar
-                fill="#d32131"
-                stroke={0}
-                size={12}
-                className="inline mr-4"
-              />
-              Underwriter Laboratory Standards
-            </span>
-            <span className="block text-gray-800 text-[0.9rem]">
-              <IconStar
-                fill="#d32131"
-                stroke={0}
-                size={12}
-                className="inline mr-4"
-              />
-              Kenya Bureau of Standards (KEBS)
-            </span>
-          </div> */}
         </div>
         <div className=" w-full md:w-1/2">
           <img
@@ -256,55 +211,57 @@ const MiniProducts = () => {
         prices. Here are some of our top selling equipment.
       </p>
       <div className="flex space-x-4 overflow-x-auto ">
-        {data?.getFeatured.map((product, i) => (
-          <div
-            key={product?.id}
-            className="flex relative shadow-md px-5 space-x-4 min-w-[300px] max-w-[400px]  my-auto"
-          >
-            <img
-              src={product?.image}
-              style={{
-                width: 100,
-                height: 100,
-              }}
-              alt={`product_${product?.id}`}
-            />
-            <Badge
-              color="green"
-              size="md"
-              radius={null}
-              variant="filled"
-              className="absolute left-0 top-0"
+        {data?.getFeatured
+          .filter((feat) => feat?.removed == false)
+          .map((product, i) => (
+            <div
+              key={product?.id}
+              className="flex relative shadow-md px-5 space-x-4 min-w-[300px] max-w-[400px]  my-auto"
             >
-              <p className="font-light">OFFER !</p>
-            </Badge>
-            <div className="my-auto">
-              <Text lineClamp={3} fw="bolder">
-                {product?.name}
-              </Text>
-              <div className="flex mb-3">
-                {[1, 2, 3, 4, 5].map((el) => (
-                  <IconStar
-                    key={el}
-                    fill="#FFD700"
-                    stroke={0}
-                    size={12}
-                    className="inline"
-                  />
-                ))}
-              </div>
-              <a
-                className="text-[#d32121] font-[300] uppercase text-[0.7rem]"
-                onClick={() => {
-                  setIndex(i);
-                  setModalOpen(true);
+              <img
+                src={product?.image}
+                style={{
+                  width: 100,
+                  height: 100,
                 }}
+                alt={`product_${product?.id}`}
+              />
+              <Badge
+                color="green"
+                size="md"
+                radius={null}
+                variant="filled"
+                className="absolute left-0 top-0"
               >
-                Learn more <IconArrowRight className="inline" size={12} />{" "}
-              </a>
+                <p className="font-light">OFFER !</p>
+              </Badge>
+              <div className="my-auto">
+                <Text lineClamp={3} fw="bolder">
+                  {product?.name}
+                </Text>
+                <div className="flex mb-3">
+                  {[1, 2, 3, 4, 5].map((el) => (
+                    <IconStar
+                      key={el}
+                      fill="#FFD700"
+                      stroke={0}
+                      size={12}
+                      className="inline"
+                    />
+                  ))}
+                </div>
+                <a
+                  className="text-[#d32121] font-[300] uppercase text-[0.7rem]"
+                  onClick={() => {
+                    setIndex(i);
+                    setModalOpen(true);
+                  }}
+                >
+                  Learn more <IconArrowRight className="inline" size={12} />{" "}
+                </a>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
       </div>
 
       <div className="w-full flex flex-row-reverse mt-4">
@@ -375,7 +332,7 @@ const MiniProducts = () => {
   );
 };
 
-const Clients = () => {
+const Clients = ({ value }) => {
   return (
     <div className="mt-14  w-[90%] mx-auto mb-8">
       <p className="tracking-wide uppercase text-[1.2rem] text-black font-extrabold inline ">
@@ -385,12 +342,16 @@ const Clients = () => {
       <p className="text-[0.9rem] text-gray-600 mb-8">
         We have the trust of the biggest names in business
       </p>
-      <div className="flex space-x-8 space-y-8"></div>
+      <div className="flex space-x-12 ">
+        {value?.value.map((img) => (
+          <img src={img} className="w-[100px]" />
+        ))}
+      </div>
     </div>
   );
 };
 
-const Testimonials = () => {
+const Testimonials = ({ value }) => {
   return (
     <div className="mt-14  w-[90%] mx-auto mb-8">
       <p className="tracking-wide uppercase text-[1.2rem] text-black font-extrabold inline ">
@@ -398,15 +359,15 @@ const Testimonials = () => {
       </p>
       <div className="w-[85px] h-[4px] bg-[#d32131] mb-8" />
       <div className=" mx-auto space-x-6 mt-6  grid grid-cols-1 md:grid-cols-3 gap-8">
-        {[1, 2, 3].map((el) => (
-          <Testimonial key={el} />
+        {value?.map((test, i) => (
+          <Testimonial key={i} testimonial={test} />
         ))}
       </div>
     </div>
   );
 };
 
-const Partners = () => {
+const Partners = ({ value }) => {
   return (
     <div className="mt-14  w-[90%] mx-auto mb-8">
       <p className="tracking-wide uppercase text-[1.2rem] text-black font-extrabold inline ">
@@ -414,8 +375,8 @@ const Partners = () => {
       </p>
       <div className="w-[70px] h-[4px] bg-[#d32131] mb-8" />
       <div className="flex space-x-8 m-4 my-12">
-        {[1].map((el) => (
-          <img key={el} src="/finder.png" className="w-[120px]" />
+        {value?.value.map((img) => (
+          <img src={img} className="w-[100px]" />
         ))}
       </div>
     </div>

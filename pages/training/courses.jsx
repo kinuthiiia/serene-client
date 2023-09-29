@@ -154,13 +154,6 @@ export default function Courses() {
   if (fetching) return <p>Loading...</p>;
   if (error) return <p>Error ...</p>;
 
-  console.log(
-    tData,
-    typeof window !== "undefined" &&
-      window.localStorage &&
-      localStorage.getItem("s_userId")
-  );
-
   return (
     <div>
       <div className="flex justify-between">
@@ -424,38 +417,38 @@ const Course = ({
   };
 
   const generateCertificate = async () => {
-    //Inittiate STK
-    try {
-      const response = await fetch(`/api/initiateNI`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          amount: 1,
-        }),
-      });
+    // //Inittiate STK
+    // try {
+    //   const response = await fetch(`/api/initiateNI`, {
+    //     method: "POST",
+    //     headers: {
+    //       "Content-Type": "application/json",
+    //     },
+    //     body: JSON.stringify({
+    //       amount: 1,
+    //     }),
+    //   });
 
-      const data = await response.json();
+    //   const data = await response.json();
 
-      if (response.status !== 200) {
-        throw new Error("Error occured , Retry");
-      }
+    //   if (response.status !== 200) {
+    //     throw new Error("Error occured , Retry");
+    //   }
 
-      if (response.status == 200) {
-        showNotification({
-          title: "Awaiting payment confirmation",
-          message: "STK push sent",
-          color: "green",
-        });
-      }
-    } catch (error) {
-      console.log(error);
-      showNotification({
-        title: "An error occurred",
-        color: "red",
-      });
-    }
+    //   if (response.status == 200) {
+    //     showNotification({
+    //       title: "Awaiting payment confirmation",
+    //       message: "STK push sent",
+    //       color: "green",
+    //     });
+    //   }
+    // } catch (error) {
+    //   console.log(error);
+    //   showNotification({
+    //     title: "An error occurred",
+    //     color: "red",
+    //   });
+    // }
 
     // Reference to the certificate container
     const certificateContainer = document.getElementById(

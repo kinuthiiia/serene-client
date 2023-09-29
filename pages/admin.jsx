@@ -51,6 +51,8 @@ import {
   IconX,
 } from "@tabler/icons";
 import { useRouter } from "next/router";
+import { HSM } from "../components";
+import SSSM from "../components/SSSM";
 
 const RTE = dynamic(
   () => {
@@ -323,6 +325,18 @@ const Layout = ({ loggedIn, active, getNavLink }) => {
               onClick={() => getNavLink("ssm")}
             />
             <NavLink
+              label="Edit home page"
+              active={active == "hsm"}
+              color="red"
+              onClick={() => getNavLink("hsm")}
+            />
+            <NavLink
+              label="Edit service page"
+              active={active == "sssm"}
+              color="red"
+              onClick={() => getNavLink("sssm")}
+            />
+            <NavLink
               label="Product Management"
               active={active == "pm"}
               color="red"
@@ -511,6 +525,8 @@ const Layout = ({ loggedIn, active, getNavLink }) => {
         </div>
       </Modal>
       {active == "ssm" && <SSM loggedIn={loggedIn} />}
+      {active == "hsm" && <HSM loggedIn={loggedIn} />}
+      {active == "sssm" && <SSSM loggedIn={loggedIn} />}
       {active == "uam" && <UAM loggedIn={loggedIn} />}
       {active == "cm" && <CM loggedIn={loggedIn} />}
       {active == "pm" && <PM loggedIn={loggedIn} />}
