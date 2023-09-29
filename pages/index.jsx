@@ -198,7 +198,7 @@ const MiniProducts = () => {
   });
 
   if (fetching) return <p>Loading ....</p>;
-  if (error) return <p>Error ....</p>;
+  if (error) return <p>Error ...</p>;
 
   return (
     <div className="mt-14  w-[90%] mx-auto mb-8">
