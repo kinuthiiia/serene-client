@@ -37,11 +37,17 @@ import {
   Popover,
   Kbd,
   Chip,
+  MultiSelect,
+  Radio,
 } from "@mantine/core";
 import { useMutation, useQuery, useClient } from "urql";
 import { showNotification } from "@mantine/notifications";
 import {
+  IconCheck,
   IconClock,
+  IconExclamationCircle,
+  IconExclamationMark,
+  IconExclamationMarkOff,
   IconLockAccess,
   IconPlus,
   IconSearch,
@@ -535,811 +541,6 @@ const Layout = ({ loggedIn, active, getNavLink }) => {
   );
 };
 
-const SliderAdmin = ({}) => {
-  return (
-    <div className="relative">
-      <button
-        onClick={null}
-        className="absolute top-0 right-0 h-[40px] w-[40px] bg-red-800 rounded-full text-white m-0 p-0"
-      >
-        <IconX className="mx-auto" />
-      </button>
-      <img src={null} className="col-span-1 h-[64px]" />
-    </div>
-  );
-};
-
-// Site sections management
-const SSM = ({ loggedIn }) => {
-  const serviceImageInput = useRef();
-  const sliderInput = useRef();
-  const ADD_SERVICE = `
-      mutation ADD_SERVICE(
-        $title: String
-        $description: String
-        $image: String
-        $mini: Boolean
-      ){
-        addService(
-          title: $title
-          description: $description
-          image: $image
-          mini: $mini
-        ){
-          title
-          description
-        }
-      }
-  `;
-  const UPDATE_SECTION = `
-    mutation UPDATE_SECTION(
-      $identifier: String
-      $value: String
-      $isImage: Boolean
-    ){
-      updateSection(
-        identifier: $identifier
-        value: $value
-        isImage: $isImage
-      ){
-        value
-        identifier   
-      }
-    }
-  `;
-
-  const GET_SERVICES = `
-      query GET_SERVICES{
-        getServices{
-          id
-          title
-          description
-          image
-          mini
-        }
-      }
-  `;
-  const [updateResults, _updateSection] = useMutation(UPDATE_SECTION);
-  const [_, _addService] = useMutation(ADD_SERVICE);
-
-  const [sections, setSections] = useState({
-    1: null,
-    s2: null,
-    3: null,
-    s4: null,
-    5: null,
-    6: null,
-    7: null,
-    8: null,
-    9: null,
-    s10: null,
-    11: null,
-    12: null,
-    13: null,
-    14: null,
-    s15: null,
-    16: null,
-    17: null,
-    18: null,
-    19: null,
-    20: null,
-  });
-  const [sliderModalOpen, setSliderModalOpen] = useState(false);
-  const [slider, setSlider] = useState(null);
-  const [sliderLoading, setSliderLoading] = useState(false);
-
-  const [{ data: sData, fetching: sFetching, error: sError }, reexecuteQuery] =
-    useQuery({
-      query: GET_SERVICES,
-    });
-
-  const [serviceModal, setServiceModal] = useState(false);
-  const [service, setService] = useState({
-    title: "",
-    description: "",
-    image: null,
-    mini: false,
-  });
-  const [serviceLoader, setServiceLoader] = useState(false);
-
-  const handleCloseServiceModal = () => {
-    setServiceModal(false);
-    setServiceLoader(false);
-    setService({
-      title: "",
-      description: "",
-      image: null,
-      mini: false,
-    });
-  };
-
-  const getBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      let base64;
-      reader.readAsDataURL(file);
-      reader.onloadend = () => {
-        base64 = reader.result;
-        resolve(base64);
-      };
-      reader.onerror = () => {
-        reject(null);
-      };
-    });
-  };
-
-  const handleSaveService = async () => {
-    setServiceLoader(true);
-    if (!service.title || !service.description) {
-      showNotification({
-        message: "Missing key fields ie. title and description",
-        color: "orange",
-      });
-      setServiceLoader(false);
-      return;
-    }
-
-    let serviceImage = service?.image ? await getBase64(service?.image) : null;
-
-    _addService({
-      title: service?.title,
-      description: service?.description,
-      mini: service?.mini,
-      image: serviceImage,
-    })
-      .then((data, error) => {
-        if (data && !error) {
-          console.log(data, error);
-          showNotification({
-            title: `Service added successfully`,
-            color: "green",
-          });
-          reexecuteQuery();
-          handleCloseServiceModal();
-          return;
-        }
-        console.log(data, error);
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-  };
-
-  const openSliderModal = async () => {
-    setSliderModalOpen(true);
-  };
-
-  const handleUploadSlider = async () => {
-    if (!slider) {
-      showNotification({
-        message: "No image selected",
-        color: "orange",
-      });
-      return;
-    }
-    let imageb64 = await getBase64(slider);
-    console.log({
-      identifier: "slider",
-      value: imageb64,
-      isImage: true,
-    });
-
-    _updateSection({
-      identifier: "slider",
-      value: imageb64,
-      isImage: true,
-    })
-      .then(({ data, error }) => {
-        console.log("Starting");
-        if (data && !error) {
-          showNotification({
-            message: "Slider updated",
-            color: "green",
-          });
-          setSlider(null);
-
-          setSliderModalOpen(false);
-        } else {
-          console.log(data, error);
-        }
-      })
-      .catch((err) => {
-        console.log(err);
-      })
-      .finally(() => {
-        setSliderLoading(false);
-      });
-  };
-
-  if (!loggedIn?.canModifySections) return <UnAuthorized />;
-
-  return (
-    <div className="p-4 space-y-12">
-      <div className="flex space-x-3">
-        <div className="w-2/3">
-          <img src="/home.png" />
-          <Divider my="xs" label="Sliders" labelPosition="left" />
-          <div className="grid  grid-cols-3 overflow-x-auto relative">
-            <SliderAdmin />
-            <Button
-              onClick={openSliderModal}
-              size="xs"
-              style={{
-                width: 48,
-                height: 48,
-                position: "absolute",
-                bottom: "1rem",
-                right: "1rem",
-              }}
-            >
-              <IconPlus />
-            </Button>
-            <Modal
-              size="50%"
-              opened={sliderModalOpen}
-              onClose={() => setSliderModalOpen(false)}
-              title={<h2 className="text-[1.2rem]">Add slider</h2>}
-              centered
-            >
-              <div>
-                <label className="text-[0.9rem]">
-                  Slider image <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  ref={sliderInput}
-                  className="hidden"
-                  onChange={(e) => {
-                    setSlider(e.target.files[0]);
-                  }}
-                />
-                <button
-                  className="bg-green-600 text-white p-2 flex space-x-1 mt-4"
-                  onClick={() => sliderInput.current.click()}
-                >
-                  <IconUpload />
-                  <span className="mt-[4px]">Choose slider image</span>
-                </button>
-
-                {slider && (
-                  <div className="p-8 relative w-[90%]">
-                    <img
-                      src={URL.createObjectURL(slider)}
-                      alt="product"
-                      className="aspect-auto"
-                    />
-                    <button
-                      onClick={() => {
-                        setSlider(null);
-                      }}
-                      className="absolute top-0 right-0 h-[40px] w-[40px] bg-red-800 rounded-full text-white m-0 p-0"
-                    >
-                      <IconX className="mx-auto" />
-                    </button>
-                  </div>
-                )}
-              </div>
-              <br />
-              <Button onClick={handleUploadSlider} loading={sliderLoading}>
-                Upload slider
-              </Button>
-            </Modal>
-          </div>
-        </div>
-        <div className="w-1/3 space-y-3">
-          <Divider my="xs" label="Text fields" labelPosition="right" />
-          <TextAreaInput
-            label="Section 2"
-            minRows={12}
-            value={sections.s2}
-            onChange={(value) =>
-              setSections((prevSections) => {
-                return { ...prevSections, s2: value };
-              })
-            }
-            onUpdate={() => {
-              if (!sections.s2) {
-                showNotification({
-                  message: "No information entered",
-                  color: "orange",
-                });
-                return;
-              }
-              _updateSection({
-                identifier: "s2",
-                value: sections.s2,
-              })
-                .then(({ data, error }) => {
-                  console.log("Starting");
-                  if (data && !error) {
-                    showNotification({
-                      message: "Section updated",
-                      color: "green",
-                    });
-                    setSections((prevSections) => {
-                      return { ...prevSections, s2: null };
-                    });
-                  } else {
-                    console.log(data, error);
-                  }
-                })
-                .catch((err) => {
-                  console.log(err);
-                });
-            }}
-          />
-          <TextAreaInput
-            label="Section 4"
-            value={sections.s4}
-            onChange={(value) =>
-              setSections((prevSections) => {
-                return { ...prevSections, s4: value };
-              })
-            }
-            onUpdate={() => {
-              if (!sections.s4) {
-                showNotification({
-                  message: "No information entered",
-                  color: "orange",
-                });
-                return;
-              }
-              _updateSection({
-                identifier: "s4",
-                value: sections.s4,
-              })
-                .then(({ data, error }) => {
-                  console.log("Starting");
-                  if (data && !error) {
-                    showNotification({
-                      message: "Section updated",
-                      color: "green",
-                    });
-                    setSections((prevSections) => {
-                      return { ...prevSections, s4: null };
-                    });
-                  } else {
-                    console.log(data, error);
-                  }
-                })
-                .catch((err) => {
-                  console.log(err);
-                });
-            }}
-          />
-          <TextAreaInput
-            label="Section 5"
-            value={sections.s5}
-            onChange={(value) =>
-              setSections((prevSections) => {
-                return { ...prevSections, s5: value };
-              })
-            }
-            onUpdate={() => {
-              if (!sections.s5) {
-                showNotification({
-                  message: "No information entered",
-                  color: "orange",
-                });
-                return;
-              }
-              _updateSection({
-                identifier: "s5",
-                value: sections.s5,
-              })
-                .then(({ data, error }) => {
-                  console.log("Starting");
-                  if (data && !error) {
-                    showNotification({
-                      message: "Section updated",
-                      color: "green",
-                    });
-                    setSections((prevSections) => {
-                      return { ...prevSections, s5: null };
-                    });
-                  } else {
-                    console.log(data, error);
-                  }
-                })
-                .catch((err) => {
-                  console.log(err);
-                });
-            }}
-          />
-          <TextAreaInput
-            label="Section 6"
-            value={sections.s6}
-            onChange={(value) =>
-              setSections((prevSections) => {
-                return { ...prevSections, s6: value };
-              })
-            }
-            onUpdate={() => {
-              if (!sections.s6) {
-                showNotification({
-                  message: "No information entered",
-                  color: "orange",
-                });
-                return;
-              }
-              _updateSection({
-                identifier: "s6",
-                value: sections.s6,
-              })
-                .then(({ data, error }) => {
-                  console.log("Starting");
-                  if (data && !error) {
-                    showNotification({
-                      message: "Section updated",
-                      color: "green",
-                    });
-                    setSections((prevSections) => {
-                      return { ...prevSections, s6: null };
-                    });
-                  } else {
-                    console.log(data, error);
-                  }
-                })
-                .catch((err) => {
-                  console.log(err);
-                });
-            }}
-          />
-          <br />
-          <Divider my="xs" label="Images" labelPosition="right" />
-          <Divider
-            my="xs"
-            label="Client, testimonials , partners"
-            labelPosition="right"
-          />
-        </div>
-      </div>
-
-      <div className="flex space-x-3">
-        <div className="w-2/3">
-          <img src="/services.png" />
-        </div>
-        <div className="w-1/3 space-y-3">
-          <Divider my="xs" label="Text fields" labelPosition="right" />
-          <TextAreaInput
-            label="Section 10"
-            minRows={12}
-            value={sections.s10}
-            onChange={(value) =>
-              setSections((prevSections) => {
-                return { ...prevSections, s10: value };
-              })
-            }
-            onUpdate={() => {
-              if (!sections.s10) {
-                showNotification({
-                  message: "No information entered",
-                  color: "orange",
-                });
-                return;
-              }
-              _updateSection({
-                identifier: "s10",
-                value: sections.s10,
-              })
-                .then(({ data, error }) => {
-                  console.log("Starting");
-                  console.log(data, error);
-                  if (data && !error) {
-                    showNotification({
-                      message: "Section updated",
-                      color: "green",
-                    });
-                    setSections((prevSections) => {
-                      return { ...prevSections, s10: null };
-                    });
-                  } else {
-                    console.log(data, error);
-                  }
-                })
-                .catch((err) => {
-                  console.log(err);
-                });
-            }}
-          />
-
-          <br />
-          <Divider my="xs" label="Services" labelPosition="right" />
-          <div className="space-y-4">
-            {sFetching ? (
-              <p>Loading...</p>
-            ) : sError ? (
-              <p>Error..</p>
-            ) : (
-              sData &&
-              sData?.getServices.map((service) => (
-                <ServiceDisplay service={service} refresh={reexecuteQuery} />
-              ))
-            )}
-            <Button color="red" fullWidth onClick={() => setServiceModal(true)}>
-              <IconPlus />
-              Add service
-            </Button>
-            <Modal
-              opened={serviceModal}
-              onClose={handleCloseServiceModal}
-              title="Add a service"
-            >
-              <div className="space-y-4">
-                <TextInput
-                  label="Title"
-                  value={service?.title}
-                  placeholder="ex. System design"
-                  onChange={(e) =>
-                    setService((service) => {
-                      return {
-                        ...service,
-                        title: e.target.value,
-                      };
-                    })
-                  }
-                />
-                <Textarea
-                  label="Description"
-                  value={service?.description}
-                  minRows={8}
-                  onChange={(e) =>
-                    setService((service) => {
-                      return {
-                        ...service,
-                        description: e.target.value,
-                      };
-                    })
-                  }
-                />
-                <Checkbox
-                  label="Upload as a mini service"
-                  value={service?.mini}
-                  onChange={(e) =>
-                    setService((service) => {
-                      return {
-                        ...service,
-                        mini: e.target.checked,
-                      };
-                    })
-                  }
-                />
-                <input
-                  type="file"
-                  onChange={(e) =>
-                    setService((service) => {
-                      return {
-                        ...service,
-                        image: e.target.files[0],
-                      };
-                    })
-                  }
-                  ref={serviceImageInput}
-                  className="hidden"
-                />
-                {service?.image ? (
-                  <div className="relative">
-                    <Button
-                      onClick={() =>
-                        setService((service) => {
-                          return {
-                            ...service,
-                            image: null,
-                          };
-                        })
-                      }
-                      color="red"
-                      h={24}
-                      w={24}
-                      p={0}
-                      style={{ position: "absolute", right: 12, top: 12 }}
-                    >
-                      <IconX />
-                    </Button>
-
-                    <img
-                      src={URL.createObjectURL(service?.image)}
-                      className="w-full"
-                    />
-                  </div>
-                ) : (
-                  <div className="flex space-x-6">
-                    <Button
-                      w={56}
-                      h={56}
-                      color="dark"
-                      onClick={() => serviceImageInput.current.click()}
-                    >
-                      <IconUpload />
-                    </Button>
-                    <p className="items-baseline text-[0.6rem] mt-6">
-                      Upload a service image
-                    </p>
-                  </div>
-                )}
-
-                <Button
-                  loading={serviceLoader}
-                  color="red"
-                  fullWidth
-                  uppercase
-                  onClick={handleSaveService}
-                >
-                  Upload service
-                </Button>
-              </div>
-            </Modal>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex space-x-3">
-        <div className="w-2/3">
-          <img src="/training.png" />
-        </div>
-        <div className="w-1/3 space-y-3">
-          <Divider my="xs" label="Text fields" labelPosition="right" />
-          <TextAreaInput
-            label="Section 15"
-            minRows={12}
-            value={sections.s15}
-            onChange={(value) =>
-              setSections((prevSections) => {
-                return { ...prevSections, s15: value };
-              })
-            }
-            onUpdate={() => {
-              if (!sections.s15) {
-                showNotification({
-                  message: "No information entered",
-                  color: "orange",
-                });
-                return;
-              }
-              _updateSection({
-                identifier: "s15",
-                value: sections.s15,
-              })
-                .then(({ data, error }) => {
-                  console.log("Starting");
-
-                  if (data && !error) {
-                    showNotification({
-                      message: "Section updated",
-                      color: "green",
-                    });
-                    setSections((prevSections) => {
-                      return { ...prevSections, s15: null };
-                    });
-                  } else {
-                    console.log(data, error);
-                  }
-                })
-                .catch((err) => {
-                  console.log(err);
-                });
-            }}
-          />
-          <TextAreaInput
-            minRows={1}
-            label="Section 16"
-            onChange={(value) =>
-              setSections((prevSections) => {
-                return { ...prevSections, 16: value };
-              })
-            }
-          />
-          <TextAreaInput
-            minRows={15}
-            label="Section 17"
-            onChange={(value) =>
-              setSections((prevSections) => {
-                return { ...prevSections, 17: value };
-              })
-            }
-          />
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const ServiceDisplay = ({ service, refresh }) => {
-  const DELETE_SERVICE = `
-    mutation DELETE_SERVICE(
-      $id: ID
-    ){
-      deleteService(
-        id: $id
-      ){
-        title
-      }
-    }
-  `;
-
-  const [_, _deleteService] = useMutation(DELETE_SERVICE);
-
-  const handleDeleteService = () => {
-    _deleteService({
-      id: service?.id,
-    }).then((data, error) => {
-      console.log(data, error);
-      refresh();
-    });
-  };
-
-  return (
-    <div className="space-y-3 w-full shadow-md relative">
-      {!service?.mini && <img src={service?.image} className="w-full" />}
-      {service?.mini && (
-        <div className="absolute left-[50%] translate-x-[-50%] top-1">
-          <Badge color="blue">Mini service</Badge>
-        </div>
-      )}
-      <Popover width={200} position="bottom" withArrow shadow="md">
-        <Popover.Target>
-          <Button
-            color="red"
-            p={0}
-            w={24}
-            h={24}
-            style={{ position: "absolute", top: 0, right: 0 }}
-          >
-            <IconX />
-          </Button>
-        </Popover.Target>
-        <Popover.Dropdown>
-          <Text size="sm">Are you sure you want to remove this service?</Text>
-          <div className="w-full space-x-3 mt-2">
-            <Button color="red" onClick={handleDeleteService}>
-              YES
-            </Button>
-            <Button color="red" variant="subtle">
-              NO
-            </Button>
-          </div>
-        </Popover.Dropdown>
-      </Popover>
-
-      <div className="p-4 space-y-3">
-        <h1 className="font-[Oswald] text-[1.2rem] tracking-tighter">
-          {service?.title}
-        </h1>
-        <Text>{service?.description}</Text>
-      </div>
-    </div>
-  );
-};
-
-const TextAreaInput = ({ label, onChange, minRows, onUpdate, value }) => {
-  const [loading, setLoading] = useState(false);
-  return (
-    <>
-      <Textarea
-        label={label}
-        onChange={(e) => onChange(e.target.value)}
-        minRows={minRows || 4}
-        value={value}
-      />
-      <Button
-        loading={loading}
-        color="red"
-        fullWidth
-        onClick={() => {
-          setLoading(true);
-          onUpdate();
-          setTimeout(() => {
-            setLoading(false);
-          }, 3000);
-        }}
-      >
-        Update
-      </Button>
-    </>
-  );
-};
-
 // User & Access management
 const UAM = ({ loggedIn }) => {
   return (
@@ -1369,6 +570,16 @@ const UAM = ({ loggedIn }) => {
 };
 
 const ViewUsers = ({ loggedIn }) => {
+  const [optionsModal, setOptionsModal] = useState(false);
+  const [email, setEmail] = useState("");
+  const [confirmText, setConfirmText] = useState("");
+  const [access, setAccess] = useState({
+    canModifyUsers: false,
+    canModifyContent: false,
+    canModifySections: false,
+    canModifyProducts: false,
+  });
+
   const GET_USERS = `
       query GET_USERS{
         getUsers{      
@@ -1385,13 +596,124 @@ const ViewUsers = ({ loggedIn }) => {
         }
       }
   `;
+  const DELETE_USER = `
+      mutation DELETE_USER(
+        $email: String
+      ){
+        deleteUser(email: $email){
+          id
+          email
+        }
+      }
+  `;
+
+  const UPDATE_USER = `
+      mutation UpdateUser($email: String, $canModifyUsers: Boolean, $password: String, $canModifyContent: Boolean, $canModifySections: Boolean, $canModifyProducts: Boolean) {
+  updateUser(email: $email, canModifyUsers: $canModifyUsers, password: $password, canModifyContent: $canModifyContent, canModifySections: $canModifySections, canModifyProducts: $canModifyProducts) {
+    id
+    firstName
+  }
+}
+   `;
 
   const [{ data, fetching, error }, reexecuteQuery] = useQuery({
     query: GET_USERS,
   });
 
+  const [_, _deleteUser] = useMutation(DELETE_USER);
+  const [__, _updateUser] = useMutation(UPDATE_USER);
+
   if (fetching) return <p>Loading ....</p>;
   if (error) return <p>Error ....</p>;
+
+  const handleCloseModal = () => {
+    setEmail("");
+    setOptionsModal(false);
+  };
+
+  const handleDeleteUser = () => {
+    if (confirmText !== "serenepsl") {
+      showNotification({
+        icon: <IconExclamationMark />,
+        message: "Try again",
+        color: "red",
+        title: "Wrong confirmation text",
+      });
+
+      return;
+    }
+
+    _deleteUser({
+      email,
+    }).then(({ data, error }) => {
+      if (!error) {
+        showNotification({
+          icon: <IconCheck />,
+          color: "green",
+          title: "User removed successfully",
+        });
+        setEmail("");
+        setConfirmText("");
+        setOptionsModal(false);
+        reexecuteQuery();
+      }
+    });
+  };
+
+  const resetPassword = () => {
+    _updateUser({
+      email,
+      password: "serenepsl",
+    }).then(({ data, error }) => {
+      if (!error) {
+        showNotification({
+          color: "green",
+          title: "Password reset successfully",
+          icon: <IconCheck />,
+        });
+
+        return;
+      }
+
+      showNotification({
+        color: "red",
+        title: "Oops! Something occured",
+        message: "Try again later",
+        icon: <IconExclamation />,
+      });
+    });
+  };
+
+  const handleUpdatePermissions = () => {
+    console.log({ email, ...access });
+    _updateUser({
+      email,
+      ...access,
+    }).then(({ data, error }) => {
+      if (!error) {
+        showNotification({
+          color: "green",
+          title: "Permissions updated successfully",
+          icon: <IconCheck />,
+        });
+        setAccess({
+          canModifyUsers: false,
+          canModifyContent: false,
+          canModifySections: false,
+          canModifyProducts: false,
+        });
+        reexecuteQuery();
+        return;
+      }
+
+      showNotification({
+        color: "red",
+        title: "Oops! Something occured",
+        message: "Try again later",
+        icon: <IconExclamationMark />,
+      });
+    });
+  };
 
   return (
     <div className="w-full p-6 font-light text-[0.8rem]">
@@ -1432,11 +754,16 @@ const ViewUsers = ({ loggedIn }) => {
                 {loggedIn?.canModifyUsers && (
                   <td>
                     <div className="flex">
-                      <Button color="red" size="xs" variant="outline">
-                        More
-                      </Button>
-                      <Button color="red" size="xs" variant="subtle">
-                        Remove
+                      <Button
+                        color="red"
+                        size="xs"
+                        variant="outline"
+                        onClick={() => {
+                          setEmail(user?.email);
+                          setOptionsModal(true);
+                        }}
+                      >
+                        Options
                       </Button>
                     </div>
                   </td>
@@ -1446,6 +773,125 @@ const ViewUsers = ({ loggedIn }) => {
           })}
         </tbody>
       </Table>
+
+      <Modal
+        opened={optionsModal && email}
+        onClose={handleCloseModal}
+        centered
+        title={
+          <UnstyledButton>
+            <Group>
+              <Avatar size={40} color="blue">
+                {data?.getUsers
+                  ?.filter((user) => user?.email == email)[0]
+                  ?.firstName.charAt(0) +
+                  data?.getUsers
+                    ?.filter((user) => user?.email == email)[0]
+                    ?.lastName.charAt(0)}
+              </Avatar>
+              <div>
+                <Text>
+                  {data?.getUsers?.filter((user) => user?.email == email)[0]
+                    ?.firstName +
+                    " " +
+                    data?.getUsers?.filter((user) => user?.email == email)[0]
+                      ?.lastName}
+                </Text>
+                <Text size="xs" color="dimmed">
+                  {email}
+                </Text>
+              </div>
+            </Group>
+          </UnstyledButton>
+        }
+      >
+        <Tabs defaultValue="pass" color="dark">
+          <Tabs.List>
+            <Tabs.Tab value="pass">Access & resetting password</Tabs.Tab>
+            <Tabs.Tab value="remove">Removing admin</Tabs.Tab>
+          </Tabs.List>
+
+          <Tabs.Panel value="pass" pt="xs">
+            <div className="space-y-8 mt-8">
+              <Radio
+                label="User can modify course content"
+                checked={access?.canModifyContent}
+                onChange={(e) =>
+                  setAccess((_access) => ({
+                    ..._access,
+                    canModifyContent: e.target.checked,
+                  }))
+                }
+              />
+              <Radio
+                label="User can modify products"
+                checked={access?.canModifyProducts}
+                onChange={(e) =>
+                  setAccess((_access) => ({
+                    ..._access,
+                    canModifyProducts: e.target.checked,
+                  }))
+                }
+              />
+              <Radio
+                label="User can modify admins"
+                checked={access?.canModifyUsers}
+                onChange={(e) =>
+                  setAccess((_access) => ({
+                    ..._access,
+                    canModifyUsers: e.target.checked,
+                  }))
+                }
+              />
+              <Radio
+                label="User can modify site sections"
+                checked={access?.canModifySections}
+                onChange={(e) =>
+                  setAccess((_access) => ({
+                    ..._access,
+                    canModifySections: e.target.checked,
+                  }))
+                }
+              />
+              <Button
+                fullWidth
+                color="red"
+                style={{ marginTop: 24 }}
+                onClick={handleUpdatePermissions}
+              >
+                Update permissions
+              </Button>
+
+              <Divider />
+
+              <Button
+                fullWidth
+                color="red"
+                variant="outline"
+                style={{ marginTop: 24 }}
+                onClick={resetPassword}
+              >
+                Reset password
+              </Button>
+            </div>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="remove" pt="xs">
+            <div className="space-y-8 mt-8">
+              <p>
+                To delete this user permanently , type <Kbd>serenepsl</Kbd>
+              </p>
+              <Input
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+              />
+              <Button color="red" onClick={handleDeleteUser}>
+                Remove user
+              </Button>
+            </div>
+          </Tabs.Panel>
+        </Tabs>
+      </Modal>
     </div>
   );
 };
