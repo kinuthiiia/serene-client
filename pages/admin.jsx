@@ -318,12 +318,12 @@ const Layout = ({ loggedIn, active, getNavLink }) => {
           width={{ sm: 200, lg: 250 }}
         >
           <div className="mt-6">
-            <NavLink
+            {/* <NavLink
               label="Site Section Management"
               active={active == "ssm"}
               color="red"
               onClick={() => getNavLink("ssm")}
-            />
+            /> */}
             <NavLink
               label="Edit home page"
               active={active == "hsm"}
@@ -524,7 +524,7 @@ const Layout = ({ loggedIn, active, getNavLink }) => {
           </div>
         </div>
       </Modal>
-      {active == "ssm" && <SSM loggedIn={loggedIn} />}
+      {/* {active == "ssm" && <SSM loggedIn={loggedIn} />} */}
       {active == "hsm" && <HSM loggedIn={loggedIn} />}
       {active == "sssm" && <SSSM loggedIn={loggedIn} />}
       {active == "uam" && <UAM loggedIn={loggedIn} />}
