@@ -122,7 +122,7 @@ const UnAuthorized = () => {
 };
 
 export default function Admin() {
-  const [navLink, setNavLink] = useState("ssm");
+  const [navLink, setNavLink] = useState("hsm");
 
   const [{ data: aData, fetching: aFetching, error: aError }, reexecuteQuery] =
     useQuery({
