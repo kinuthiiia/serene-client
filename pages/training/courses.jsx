@@ -16,6 +16,7 @@ import {
   UnstyledButton,
   Popover,
   Radio,
+  TextInput,
 } from "@mantine/core";
 import dynamic from "next/dynamic";
 import {
@@ -76,6 +77,7 @@ export default function Courses() {
               price
               was
               onSale
+              payableAt
               lectures{
                 id
                 title
@@ -124,6 +126,7 @@ export default function Courses() {
           price
           was
           onSale
+          payableAt
           lectures{
             id
             title
@@ -417,39 +420,6 @@ const Course = ({
   };
 
   const generateCertificate = async () => {
-    // //Inittiate STK
-    // try {
-    //   const response = await fetch(`/api/initiateNI`, {
-    //     method: "POST",
-    //     headers: {
-    //       "Content-Type": "application/json",
-    //     },
-    //     body: JSON.stringify({
-    //       amount: 1,
-    //     }),
-    //   });
-
-    //   const data = await response.json();
-
-    //   if (response.status !== 200) {
-    //     throw new Error("Error occured , Retry");
-    //   }
-
-    //   if (response.status == 200) {
-    //     showNotification({
-    //       title: "Awaiting payment confirmation",
-    //       message: "STK push sent",
-    //       color: "green",
-    //     });
-    //   }
-    // } catch (error) {
-    //   console.log(error);
-    //   showNotification({
-    //     title: "An error occurred",
-    //     color: "red",
-    //   });
-    // }
-
     // Reference to the certificate container
     const certificateContainer = document.getElementById(
       "certificate-container"
@@ -777,19 +747,23 @@ const Course = ({
                 <Lecture
                   key={i}
                   lecture={lecture}
+                  payableAt={course?.payableAt}
                   count={i}
                   refresh={refresh}
                   notEnrolled
+                  courseName={course?.name}
                 />
               ))}
             {enrolled &&
               course?.course?.lectures.map((lecture, i) => (
                 <Lecture
+                  courseName={course?.course?.name}
                   key={i}
                   lecture={lecture}
                   count={i}
                   refresh={refresh}
                   progress={course.progress}
+                  payableAt={course?.course?.payableAt}
                   lecturesCount={course?.course?.lectures.length}
                   handleNext={(val) => {
                     handleNext(val);
@@ -811,8 +785,12 @@ const Lecture = ({
   progress,
   lecturesCount,
   enrolled,
+  payableAt,
+  courseName,
 }) => {
   const [openLecture, setOpenLecture] = useState(false);
+  const [phoneModal, setPhoneModal] = useState(false);
+  const [phone, setPhone] = useState("");
 
   const [submitted, setSubmitted] = useState([]);
   const [showAnswer, setShowAnswer] = useState(false);
@@ -869,6 +847,43 @@ const Lecture = ({
     setSubmitted(updatedArray);
   };
 
+  const handlePayCourse = async (e) => {
+    e.preventDefault();
+
+    //Inittiate STK
+    try {
+      const response = await fetch(`/api/initiateNI`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount: 1,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.status !== 200) {
+        throw new Error("Error occured , Retry");
+      }
+
+      if (response.status == 200) {
+        showNotification({
+          title: "Awaiting payment confirmation",
+          message: "STK push sent",
+          color: "green",
+        });
+      }
+    } catch (error) {
+      console.log(error);
+      showNotification({
+        title: "An error occurred",
+        color: "red",
+      });
+    }
+  };
+
   return (
     <div className="flex  space-x-8">
       {(count / lecturesCount) * 10 < progress ? (
@@ -899,6 +914,7 @@ const Lecture = ({
           <Text c="gray">~30 min</Text>
         </span>
       </div>
+
       {enrolled && (
         <div className="space-y-2">
           {((count / lecturesCount) * 10).toFixed() == progress.toFixed() ? (
@@ -912,6 +928,7 @@ const Lecture = ({
           ) : null}
         </div>
       )}
+
       <Modal
         size="70%"
         opened={openLecture}
@@ -947,9 +964,74 @@ const Lecture = ({
               />
             ))}
 
-            <Button mx="auto" color="red" mt={8} onClick={handleSubmitAnswers}>
-              Submit
-            </Button>
+            <br />
+            <p>
+              By finishing this lecture , you will be{" "}
+              {(((count + 1) / lecturesCount) * 100).toFixed(0)}% through the
+              course. This course is designed to be paid{" "}
+              <span className="text-green-500">
+                {payableAt == 0
+                  ? "At the start of the course"
+                  : payableAt == 25
+                  ? "25% through the course"
+                  : payableAt == 50
+                  ? "Halfway through the course"
+                  : payableAt == 75
+                  ? "25% to completion"
+                  : "At the end of the course"}
+              </span>
+            </p>
+
+            <br />
+
+            <div>
+              {(((count + 1) / lecturesCount) * 100).toFixed(0) >= payableAt ? (
+                <>
+                  <Button
+                    mx="auto"
+                    color="green"
+                    mt={8}
+                    onClick={() => setPhoneModal(true)}
+                  >
+                    Pay course
+                  </Button>
+                  <Modal
+                    opened={phoneModal}
+                    onClose={() => setPhoneModal(false)}
+                  >
+                    <form className="space-y-12" onSubmit={handlePayCourse}>
+                      <p>
+                        To pay for this course (
+                        <span className="text-green-500">{courseName}</span>)
+                        ,enter your M-PESA phone number below and we'll send a
+                        STK push to your phone for you to complete the
+                        transaction.
+                      </p>
+                      <TextInput
+                        required
+                        onChange={(e) => setPhone(e.target.value)}
+                        label={"Phone number"}
+                        placeholder="ex. 0712345678"
+                        value={phone}
+                      />
+                      <Button type="submit" fullWidth color="green">
+                        Send STK push
+                      </Button>
+                    </form>
+                  </Modal>
+                </>
+              ) : (
+                <Button
+                  mx="auto"
+                  color="red"
+                  mt={8}
+                  onClick={handleSubmitAnswers}
+                >
+                  Submit
+                </Button>
+              )}
+            </div>
+
             {showAnswer && score < 0.8 ? (
               <Alert
                 icon={<IconAlertCircle size="1rem" />}

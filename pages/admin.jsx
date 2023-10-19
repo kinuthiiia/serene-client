@@ -1854,6 +1854,7 @@ const AddCourseForm = ({ loggedIn }) => {
     was: 0,
     addedBy: loggedIn?.id,
     featured: false,
+    payableAt: null,
   });
   const [loading, setLoading] = useState(false);
 
@@ -1868,6 +1869,7 @@ const AddCourseForm = ({ loggedIn }) => {
         $onSale: Boolean
         $was: Int
         $featured: Boolean
+        $payableAt: Int
       ){
         addCourse(
           name: $name
@@ -1879,6 +1881,7 @@ const AddCourseForm = ({ loggedIn }) => {
           onSale: $onSale
           was: $was
           featured: $featured
+          payableAt: $payableAt
         ){
           id
           name
@@ -1907,8 +1910,17 @@ const AddCourseForm = ({ loggedIn }) => {
     e.preventDefault();
 
     setLoading(true);
-    const { name, addedBy, price, description, image, category, onSale, was } =
-      course;
+    const {
+      name,
+      addedBy,
+      price,
+      description,
+      image,
+      category,
+      onSale,
+      was,
+      payableAt,
+    } = course;
 
     let courseImage = await getBase64(image);
 
@@ -1921,6 +1933,7 @@ const AddCourseForm = ({ loggedIn }) => {
       onSale,
       was,
       addedBy,
+      payableAt,
     })
       .then(({ data, error }) => {
         console.log(data, error);
@@ -2059,6 +2072,25 @@ const AddCourseForm = ({ loggedIn }) => {
             });
           }}
           icon={"Ksh. "}
+        />
+
+        <Select
+          value={course?.payableAt}
+          onChange={(val) => {
+            console.log(val);
+            setCourse((course) => {
+              return { ...course, payableAt: val };
+            });
+          }}
+          placeholder="Pick one"
+          label="Payable"
+          data={[
+            { value: 0, label: "At the start" },
+            { value: 25, label: "25% through" },
+            { value: 50, label: "Halfway through the course" },
+            { value: 75, label: "25% to completion" },
+            { value: 100, label: "After completion" },
+          ]}
         />
 
         <Checkbox
